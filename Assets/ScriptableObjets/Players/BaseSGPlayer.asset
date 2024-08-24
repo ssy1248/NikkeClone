@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd3ce6b8dcdafec48b6d112a33e3dfea, type: 3}
+  m_Name: BaseSGPlayer
+  m_EditorClassIdentifier: 
+  weapon: 0
+  gunImage: {fileID: 3091457740509065604, guid: 111ff140556e7ef449962f76ddbc0839,
+    type: 3}
+  types: 0
+  code: 1
+  burst: 0
+  burstCoolTime: 20
+  maxAmmo: 9
+  reloadTime: 1.5
+  rateOfFire: 1
+  maxHealth: 800
+  defence: 30
+  damage: 10
