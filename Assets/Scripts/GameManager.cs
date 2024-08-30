@@ -58,13 +58,6 @@ public class TypeChart
     }
 }
 
-public enum GameState
-{
-    GamePlay,
-    Paused,
-    GameOver
-}
-
 public class GameManager : MonoBehaviour
 {
     public List<GameObject> PlayerObjects = new List<GameObject>();
@@ -77,7 +70,7 @@ public class GameManager : MonoBehaviour
 
     //현재 활성화된 플레이어 오브젝트
     [SerializeField]
-    private Player activePlayer;
+    public Player activePlayer;
 
     private RectTransform previousButtonRectTransform = null; // 이전 버튼의 RectTransform
     private float originalHeight = 0f; // 원래 높이 저장
@@ -98,7 +91,13 @@ public class GameManager : MonoBehaviour
 
     public List<Enemy> EnemyList = new List<Enemy>();
 
-    //private List<GameObject> exceptionChildObjects = new List<GameObject>();
+    //Auto 버튼을 눌렀는지 확인을 위한 bool
+    public bool isAutoBurst;
+    //AutoAttack 버튼을 눈렀는지 확인을 위한 bool
+    public bool isAutoAttack;
+
+    [Header("UI")]
+    public GameObject pauseScreen;
 
     //버튼 Auto 를 만들면 모든 플레이어 Player함수를 비활성화 시키고 AutoPlayer함수를 활성화 SelPlayer함수가 실행되더라도 Player함수가 활성화되는것을 예외처리
     //버튼 일시정지 모드
@@ -107,6 +106,11 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        DisableScreens();
+
+        isAutoBurst = false;
+        isAutoAttack = false;
+
         //초기화
         PlayerIndex = 0;
 
@@ -320,6 +324,11 @@ public class GameManager : MonoBehaviour
         {
             child.gameObject.SetActive(active);
         }
+    }
+
+    void DisableScreens()
+    {
+        pauseScreen.SetActive(false);
     }
 
     //버튼크기 키우는 코루틴

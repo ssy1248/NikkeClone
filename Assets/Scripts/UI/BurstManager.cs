@@ -20,6 +20,7 @@ public class BurstManager : MonoBehaviour
     public Button Burst2Image;
     public Button Burst3Image;
 
+    // 각 버스트 상태를 나타내는 변수
     public bool OneBurstIsOn = false;
     public bool TwoBurstIsOn = false;
     public bool ThreeBurstIsOn = false;
@@ -49,27 +50,29 @@ public class BurstManager : MonoBehaviour
 
     public void Update()
     {
+        // 전체 버스트 체크 후 버스트 실행
         if (FullBurstChk(currentIndex) == false)
         {
             Burst();
         }
         else
         {
+            // 전체 버스트가 완료되면 인덱스 초기화
             BurstIndex = 0;
         }
     }
 
     public void BtnBurstClick(Button clickedButton)
     {
-        isButtonClicked = true;
+        isButtonClicked = true; // 버튼 클릭 상태 설정
         ButtonBase btb = clickedButton.GetComponentInChildren<ButtonBase>();
 
-        if (btb.isCoolTime)
+        if (btb.isCoolTime) // 쿨타임 중이면 리턴
             return;
 
-        burstCooldownManager.BurstCoolTime(clickedButton);
+        burstCooldownManager.BurstCoolTime(clickedButton); // 쿨타임 실행
 
-        BurstIndex++;
+        BurstIndex++; // 버스트 인덱스 증가
     }
 
     public void UpdateBurstBar(float attackPower)
@@ -99,9 +102,10 @@ public class BurstManager : MonoBehaviour
 
     void Burst()
     {
-        GameObject spawn = GameObject.Find("Burst").gameObject;
-        Vector3 spawnPosition = spawn.transform.position;
+        GameObject spawn = GameObject.Find("Burst").gameObject; // 버스트 오브젝트 찾기
+        Vector3 spawnPosition = spawn.transform.position; // 스폰 위치
 
+        // 각 버스트 상태에 따라 처리
         if (BurstIndex == 1 && OneBurstIsOn)
         {
             currentIndex = BurstIndex;
@@ -130,6 +134,7 @@ public class BurstManager : MonoBehaviour
             FullBurstOn = false;
         }
 
+        // 버튼 클릭 상태 초기화
         isButtonClicked = false;
     }
 
@@ -137,18 +142,22 @@ public class BurstManager : MonoBehaviour
     {
         for (int i = 0; i < players.Count; i++)
         {
-            if (i > 0) spawnPosition.y -= 110 * i;
+            // 버튼 간격 조정
+            if (i > 0) spawnPosition.y -= 110 * i; 
 
+            // 버튼이 생성이 안되있다면
             if (burstButtons.Count <= i)
             {
+                // 새로운 버스트 버튼 생성
                 Button newBurstIButton = Instantiate(burstImage, spawnPosition, Quaternion.identity, spawn.transform);
-                newBurstIButton.onClick.AddListener(() => BtnBurstClick(newBurstIButton));
-                newBurstIButton.transform.GetComponentInChildren<TextMeshProUGUI>().text = players[i].name;
-                burstButtons.Add(newBurstIButton);
+                newBurstIButton.onClick.AddListener(() => BtnBurstClick(newBurstIButton)); // 클릭 이벤트 등록
+                newBurstIButton.transform.GetComponentInChildren<TextMeshProUGUI>().text = players[i].name; // 버튼 텍스트 설정
+                burstButtons.Add(newBurstIButton); // 버튼 리스트에 추가
             }
+            // 버튼이 생성이 되있다면 기존 버튼 활성화
             else
             {
-                burstButtons[i].gameObject.SetActive(true);
+                burstButtons[i].gameObject.SetActive(true); 
             }
         }
     }
@@ -156,37 +165,38 @@ public class BurstManager : MonoBehaviour
     void HandleBurstTransition(List<Button> previousBurstButtons, List<Player> currentBurstPlayers, List<Button> currentBurstButtons,
         Button currentBurstImage, GameObject spawn, Vector3 spawnPosition, float fillDuration)
     {
-        BurstBarImage[BurstIndex - 1].gameObject.SetActive(false);
-        BurstBarImage[BurstIndex].gameObject.SetActive(true);
+        BurstBarImage[BurstIndex - 1].gameObject.SetActive(false); // 이전 버스트 바 비활성화
+        BurstBarImage[BurstIndex].gameObject.SetActive(true); // 현재 버스트 바 활성화
 
         foreach (Button button in previousBurstButtons)
         {
-            button.gameObject.SetActive(false);
+            button.gameObject.SetActive(false); // 이전 버튼 비활성화
         }
 
-        HandleBurst(currentBurstPlayers, currentBurstButtons, currentBurstImage, spawn, spawnPosition);
-        StartCoroutine(ChangeFillAmountOverTime(BurstIndex, fillDuration));
+        HandleBurst(currentBurstPlayers, currentBurstButtons, currentBurstImage, spawn, spawnPosition); // 현재 버스트 처리
+        StartCoroutine(ChangeFillAmountOverTime(BurstIndex, fillDuration)); // fillAmount 변화 코루틴 시작
     }
 
     void HandleFullBurst(List<Button> previousBurstButtons, float fillDuration)
     {
-        BurstBarImage[BurstIndex - 1].gameObject.SetActive(false);
-        BurstBarImage[BurstIndex].gameObject.SetActive(true);
+        BurstBarImage[BurstIndex - 1].gameObject.SetActive(false); // 이전 버스트 바 비활성화
+        BurstBarImage[BurstIndex].gameObject.SetActive(true); // 현재 버스트 바 활성화
 
         foreach (Button button in previousBurstButtons)
         {
-            button.gameObject.SetActive(false);
+            button.gameObject.SetActive(false); // 이전 버튼 비활성화
         }
 
-        StartCoroutine(ChangeFillAmountOverTime(BurstIndex, fillDuration));
+        StartCoroutine(ChangeFillAmountOverTime(BurstIndex, fillDuration)); // fillAmount 변화 코루틴 시작
     }
 
     public bool FullBurstChk(int index)
     {
-        if (BurstIndex > 4)
+        if (BurstIndex > 4) // 전체 버스트 체크
         {
-            BurstBarImage[index].gameObject.SetActive(false);
+            BurstBarImage[index].gameObject.SetActive(false); // 현재 버스트 바 비활성화
 
+            // 각 버튼 리스트 비활성화
             if (index == 2)
             {
                 for (int i = 0; i < burst2Buttons.Count; i++)
@@ -202,17 +212,18 @@ public class BurstManager : MonoBehaviour
                 }
             }
 
+            // 모든 버스트 바 fillAmount를 1로 설정
             for (int i = 1; i < BurstBarImage.Count; i++)
             {
                 BurstBarImage[i].fillAmount = 1f;
             }
 
-            // 여기서 fullburst 없애고 0으로 초기화 하면서 실행
+            // 전체 버스트 초기화
             BurstBarImage[0].gameObject.SetActive(true);
             BurstBarImage[0].fillAmount = 0;
-            return true;
+            return true; // 전체 버스트 완료
         }
-        return false;
+        return false; // 전체 버스트 미완료
     }
 
     IEnumerator ChangeFillAmountOverTime(int index, float time)

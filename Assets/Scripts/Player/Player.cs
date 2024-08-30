@@ -122,6 +122,11 @@ public class Player : MonoBehaviour
         }
     }
 
+    public void AutoAttack()
+    {
+
+    }
+
     public void TakeDamage(float dmg)
     {
         player.currentHealth -= dmg;

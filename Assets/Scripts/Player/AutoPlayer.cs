@@ -90,7 +90,13 @@ public class AutoPlayer : MonoBehaviour
         player.currentAmmo -= 1;
         ui.ammoUIManager.UpdateAutoAttackAmmoUI(player);
 
-        target.TakeDamage(player.currentDamage);
+        target.TakeDamage(player.currentDamage + TypeChart.GetEffectiveness(player.currentCodes, target.enemyStat.currentCodes) - target.enemyStat.currentDefece);
+
+        if (ui.burstManager.BurstIndex == 0)
+        {
+            ui.burstManager.UpdateBurstBar(player.currentDamage + TypeChart.GetEffectiveness(player.currentCodes, target.enemyStat.currentCodes));
+        }
+
         fireCooldown = 1f; // 공격 후 쿨타임 설정
 
         // 적이 죽었는지 확인
