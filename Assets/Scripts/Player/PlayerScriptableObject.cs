@@ -35,13 +35,6 @@ public enum BurstType
     Burst3, //3버스트
 }
 
-// SMG - 1.5f / 120발
-// SR - 2.0f / 6발
-// AR - 1.0f / 60발
-// RL - 2.0f / 6발
-// MG - 2.5f / 300발
-// SG - 1.5f / 9발
-
 [CreateAssetMenu(fileName = "PlayerScriptableObject", menuName = "ScriptableObject/Player")]
 public class PlayerScriptableObject : ScriptableObject
 {

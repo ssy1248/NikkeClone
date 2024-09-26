@@ -20,6 +20,8 @@ public class AutoPlayer : MonoBehaviour
     private float fireCooldown;
     private Enemy currentTarget; // 현재 타겟
 
+    private bool isReloading; // 리로드 상태를 추적하는 변수
+
     void Start()
     {
         gm = FindObjectOfType<GameManager>();
@@ -82,7 +84,10 @@ public class AutoPlayer : MonoBehaviour
         {
             //임의 체크
             player.currentAmmo = 0;
-            Reload();
+
+            // 코루틴을 시작하여 리로드를 처리
+            StartCoroutine(RealoadTimeCheck(player.currentReloadTime));
+
             Debug.Log("탄창 0발");
             return;
         }
@@ -104,6 +109,25 @@ public class AutoPlayer : MonoBehaviour
         {
             gm.EnemyList.Remove(target);
         }
+    }
+
+    public IEnumerator RealoadTimeCheck(float ReloadTime)
+    {
+        isReloading = true; // 리로드 시작 상태 설정
+
+        while (ReloadTime > 0)
+        {
+            ReloadTime -= Time.deltaTime;
+            yield return null; // 다음 프레임까지 대기
+        }
+
+        // 리로드가 완료되었을 때만 실제 리로드 처리
+        if (isReloading)
+        {
+            Reload(); // 리로드 완료 후 탄창 갱신
+        }
+
+        isReloading = false; // 리로드 상태 해제
     }
 
     public void Reload()

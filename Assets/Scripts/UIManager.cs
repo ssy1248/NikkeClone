@@ -126,15 +126,15 @@ public class UIManager : MonoBehaviour
         isAutoBurstButtonActive = !isAutoBurstButtonActive;
     }
 
-    //게임 멈추기 -> PauseScreen 활성화 하기
     public void PauseGame()
     {
-        
+        Time.timeScale = 0; // 게임을 멈춤
+        gm.pauseScreen.SetActive(true); // PauseScreen UI 활성화
     }
 
-    //Resume 버튼 누르면 -> PauseScreen 비활성화
     public void ResumeGame()
     {
-
+        Time.timeScale = 1; // 게임을 다시 시작
+        gm.pauseScreen.SetActive(false); // PauseScreen UI 비활성화
     }
 }

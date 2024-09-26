@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class MapManager : MonoBehaviour
 {
+
+    public StageInformation StageInformation;
     //부서지는 오브젝트를 설치할 스폰 위치 리스트
     public List<Transform> SpawnPoints;
     //부서지는 오브젝트 프리팹을 집어넣을 오브젝트 리스트
