@@ -49,9 +49,13 @@ public class Player : MonoBehaviour
     {
         if (enabled)
         {
-            if(!IsMouseOverUI())
+            if(!IsMouseOverUI() && !gm.isAutoAttack)
             {
                 MouseToRotatePosition();
+            }
+            else
+            {
+                AutoAttack();
             }
 
 
@@ -83,7 +87,7 @@ public class Player : MonoBehaviour
         {
             if (isReloading) // 리로드 중인 경우 코루틴을 중단하고 상태 업데이트
             {
-                StopCoroutine("RealoadTimeCheck");
+                StopCoroutine("ReloadTimeCheck");
                 isReloading = false;
                 RealoadBar.gameObject.SetActive(false);
             }
@@ -94,36 +98,54 @@ public class Player : MonoBehaviour
 
             foreach (RaycastHit hit in hits)
             {
+                // Enemy Attack
                 if (hit.transform.CompareTag("Enemy"))
                 {
-                    Scope.SetActive(true);
                     Scope.transform.position = new Vector3(hit.transform.position.x, hit.transform.position.y, hit.transform.position.z - 0.5f); // 스코프를 적 위치로 이동
 
                     if (fireCooldown <= 0)
                     {
-                        Attack(hit.transform.GetComponent<Enemy>());
+                        Attack(hit.transform);
                         fireCooldown = player.currentRateOfFire; // 발사 속도 초기화
                     }
 
                     return; // 가장 가까운 적만 공격하고 나머지는 무시
                 }
+                // Breakable Object Attack
                 else if (hit.transform.CompareTag("Breakable"))
                 {
+                    if(fireCooldown <= 0)
+                    {
+                        Attack(hit.transform);
+                        fireCooldown = player.currentRateOfFire; // 발사 속도 초기화
+                    }
 
+                    return;
+                }
+                // Shooting
+                else
+                {
+                    if(fireCooldown <= 0)
+                    {
+                        player.currentAmmo -= 1;
+                        ui.ammoUIManager.UpdateAttckAmmoUI(player);
+                        fireCooldown = player.currentRateOfFire; // 발사 속도 초기화
+                    }
                 }
             }
         }
+        //리로드 할때 만약 플레이어의 탄약이 만발이라면 장전을 안한다.
         else if (Input.GetMouseButtonUp(0) && !IsMouseOverUI())
         {
             Scope.SetActive(false);
             RealoadBar.gameObject.SetActive(true);
 
             // 코루틴을 시작하여 리로드를 처리
-            StartCoroutine(RealoadTimeCheck(player.currentReloadTime));
+            StartCoroutine(ReloadTimeCheck(player.currentReloadTime));
         }
     }
 
-    public void Attack(Enemy targetEnemy)
+    public void Attack(Transform target)
     {
         if (player.currentAmmo <= 0)
         {
@@ -138,17 +160,23 @@ public class Player : MonoBehaviour
         player.currentAmmo -= 1;
         ui.ammoUIManager.UpdateAttckAmmoUI(player);
 
-        if (targetEnemy != null)
+        if (target.GetComponent<Enemy>())
         {
-            enemy = targetEnemy;
+            enemy = target.GetComponent<Enemy>();
 
             Debug.Log(player.currentDamage + TypeChart.GetEffectiveness(player.currentCodes, enemy.enemyStat.currentCodes) - enemy.enemyStat.currentDefece);
-            if(ui.burstManager.BurstIndex == 0)
+            if (ui.burstManager.BurstIndex == 0)
             {
                 ui.burstManager.UpdateBurstBar(player.currentDamage + TypeChart.GetEffectiveness(player.currentCodes, enemy.enemyStat.currentCodes));
             }
-           
+
             enemy.TakeDamage(player.currentDamage + TypeChart.GetEffectiveness(player.currentCodes, enemy.enemyStat.currentCodes) - enemy.enemyStat.currentDefece);
+        }
+        else if (target.GetComponent<BreakableObjectBase>())
+        {
+            Debug.Log("Breakable Object Target");
+            //건물이 맞으면 체력을 깎으면서 건물 오브젝트의 알파값을 줄이면서 0이되면 Destroy
+            //만약 건물 뒤에 적이있다면 적이 우선공격이 아닌 건물이 우선공격이 되는 로직 구현
         }
     }
 
@@ -173,7 +201,7 @@ public class Player : MonoBehaviour
         Destroy(this.gameObject);
     }
 
-    public IEnumerator RealoadTimeCheck(float ReloadTime)
+    public IEnumerator ReloadTimeCheck(float ReloadTime)
     {
         isReloading = true; // 리로드 시작 상태 설정
 
