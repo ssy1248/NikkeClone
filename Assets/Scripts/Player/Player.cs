@@ -12,6 +12,7 @@ public class Player : MonoBehaviour
 
     PlayerStat player;
     Enemy enemy;
+    BreakableObjectBase breakableObject;
     UIManager ui;
 
     public Image RealoadBar;
@@ -57,7 +58,6 @@ public class Player : MonoBehaviour
             {
                 AutoAttack();
             }
-
 
             // 발사 속도 재설정
             if (fireCooldown >= 0)
@@ -140,6 +140,11 @@ public class Player : MonoBehaviour
             Scope.SetActive(false);
             RealoadBar.gameObject.SetActive(true);
 
+            if(player.currentWeapon == Weapons.SG)
+            {
+                Debug.Log("샷건 장전");
+            }
+
             // 코루틴을 시작하여 리로드를 처리
             StartCoroutine(ReloadTimeCheck(player.currentReloadTime));
         }
@@ -175,8 +180,9 @@ public class Player : MonoBehaviour
         else if (target.GetComponent<BreakableObjectBase>())
         {
             Debug.Log("Breakable Object Target");
-            //건물이 맞으면 체력을 깎으면서 건물 오브젝트의 알파값을 줄이면서 0이되면 Destroy
-            //만약 건물 뒤에 적이있다면 적이 우선공격이 아닌 건물이 우선공격이 되는 로직 구현
+            breakableObject = target.transform.GetComponent<BreakableObjectBase>();
+
+            breakableObject.BreakableObjectAttack(player.currentDamage);
         }
     }
 
@@ -237,6 +243,10 @@ public class Player : MonoBehaviour
     public void SGReload()
     {
         // SG 전용 장전 함수
+        if(player.currentWeapon == Weapons.SG)
+        {
+
+        }
     }
 
     void AmmoUIUpdate()

@@ -21,6 +21,7 @@ public class AutoPlayer : MonoBehaviour
     private Enemy currentTarget; // 현재 타겟
 
     private bool isReloading; // 리로드 상태를 추적하는 변수
+    private LineRenderer lineRenderer; // 라인 렌더러 변수 추가
 
     void Start()
     {
@@ -33,6 +34,8 @@ public class AutoPlayer : MonoBehaviour
         isAlive = true;
 
         fireCooldown = 0f;
+
+        lineSetting();
     }
 
     void Update()
@@ -46,6 +49,23 @@ public class AutoPlayer : MonoBehaviour
             {
                 fireCooldown -= Time.deltaTime;
             }
+        }
+    }
+
+    private void lineSetting()
+    {
+        lineRenderer = GetComponent<LineRenderer>();
+
+        // 혹시 모를 null 체크
+        if (lineRenderer == null)
+        {
+            Debug.LogError("LineRenderer가 이 오브젝트에 존재하지 않습니다!");
+        }
+        else
+        {
+            // 기본 설정 (필요한 경우)
+            lineRenderer.positionCount = 2; // 시작점과 끝점
+            lineRenderer.enabled = false;   // 처음에는 비활성화 상태
         }
     }
 
@@ -85,6 +105,11 @@ public class AutoPlayer : MonoBehaviour
             //임의 체크
             player.currentAmmo = 0;
 
+            if (player.currentWeapon == Weapons.SG)
+            {
+                Debug.Log("샷건 장전");
+            }
+
             // 코루틴을 시작하여 리로드를 처리
             StartCoroutine(RealoadTimeCheck(player.currentReloadTime));
 
@@ -96,6 +121,9 @@ public class AutoPlayer : MonoBehaviour
         ui.ammoUIManager.UpdateAutoAttackAmmoUI(player);
 
         target.TakeDamage(player.currentDamage + TypeChart.GetEffectiveness(player.currentCodes, target.enemyStat.currentCodes) - target.enemyStat.currentDefece);
+
+        // 공격 시 라인 렌더러를 사용하여 시각적 효과 추가
+        StartCoroutine(ShowAttackLine(target));
 
         if (ui.burstManager.BurstIndex == 0)
         {
@@ -128,6 +156,18 @@ public class AutoPlayer : MonoBehaviour
         }
 
         isReloading = false; // 리로드 상태 해제
+    }
+
+    // 공격 시 라인 렌더러를 잠시 활성화하는 코루틴
+    IEnumerator ShowAttackLine(Enemy target)
+    {
+        lineRenderer.enabled = true; // 라인 렌더러 활성화
+        lineRenderer.SetPosition(0, transform.position); // 시작점: 플레이어 위치
+        lineRenderer.SetPosition(1, target.transform.position); // 끝점: 적의 위치
+
+        yield return new WaitForSeconds(0.3f); // 0.1초 동안 선을 표시
+
+        lineRenderer.enabled = false; // 라인 렌더러 비활성화
     }
 
     public void Reload()
