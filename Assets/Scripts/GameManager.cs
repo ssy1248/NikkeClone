@@ -58,6 +58,13 @@ public class TypeChart
     }
 }
 
+public enum PlayerState
+{
+    None,
+    Attack,
+    Defence
+}
+
 public class GameManager : MonoBehaviour
 {
     public List<GameObject> PlayerObjects = new List<GameObject>();
@@ -100,7 +107,6 @@ public class GameManager : MonoBehaviour
     public GameObject pauseScreen;
 
     //버튼 Auto 를 만들면 모든 플레이어 Player함수를 비활성화 시키고 AutoPlayer함수를 활성화 SelPlayer함수가 실행되더라도 Player함수가 활성화되는것을 예외처리
-    //버튼 일시정지 모드
     //버튼 AutoBurst를 만들어서 클릭을 할 시 생성되는 Burst1Image의 리스트의 제일 앞을 실행시키기 만약 제일 앞이 쿨타임이 걸려있다면 ++ 을 진행하여 발동 만약 모든 리스트가 쿨타임이 진행중이라면 아무행동도 안함
     //크기 줄이는 코루틴이 발생하여서 크기가 커져도 hpbar와 defencebar, code SetActive 비활성화 예외 처리는 완료 그러나 위치가 이상하고 처음 시작하는 플레이어는 싹다 setActive가 false로 되어잇음
 

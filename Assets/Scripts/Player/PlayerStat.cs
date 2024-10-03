@@ -12,6 +12,7 @@ public class PlayerStat : MonoBehaviour
     public Image currentGunImage;
     public Types currentTypes;
     public AttributeCodes currentCodes;
+    public Texture2D currentCodeImage;
     public BurstType currentBurst;
     public float currentBurstCoolTime;
     public float currentAmmo;
@@ -27,6 +28,7 @@ public class PlayerStat : MonoBehaviour
         currentGunImage = player.GunImage;
         currentTypes = player.Types;
         currentCodes = player.Code;
+        currentCodeImage = player.CodeImage;
         currentBurst = player.Burst;
         currentBurstCoolTime = player.BurstCoolTime;
         currentAmmo = player.MaxAmmo;

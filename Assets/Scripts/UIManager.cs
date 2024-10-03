@@ -13,6 +13,7 @@ public class UIManager : MonoBehaviour
     public AmmoUiManager ammoUIManager;
     public BurstManager burstManager;
     public BurstCooldownManager burstCooldownManager;
+    public CodeManager codeManager;
 
     private bool isAutoAttackButtonActive = true;
     private bool isAutoBurstButtonActive = true;
@@ -23,6 +24,7 @@ public class UIManager : MonoBehaviour
 
         burstManager.burstCooldownManager = burstCooldownManager;
         burstManager.Awake();
+        codeManager.CodeImageSetting(gm.PlayerObjects);
     }
 
     void Start()

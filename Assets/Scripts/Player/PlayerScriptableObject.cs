@@ -55,6 +55,10 @@ public class PlayerScriptableObject : ScriptableObject
     public AttributeCodes Code { get => code; set => code = value; }
 
     [SerializeField]
+    Texture2D codeImage;
+    public Texture2D CodeImage { get => codeImage; set => codeImage = value; }
+
+    [SerializeField]
     BurstType burst;
     public BurstType Burst { get=> burst; set => burst = value; }
 

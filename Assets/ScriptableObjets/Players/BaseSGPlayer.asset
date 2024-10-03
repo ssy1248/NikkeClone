@@ -17,6 +17,7 @@ MonoBehaviour:
     type: 3}
   types: 0
   code: 1
+  codeImage: {fileID: 2800000, guid: 83d0700f96ae69741a04aba20e85ccbe, type: 3}
   burst: 0
   burstCoolTime: 20
   maxAmmo: 9
