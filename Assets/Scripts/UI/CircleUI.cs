@@ -1,64 +1,127 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
+using UnityEngine.UI;
 
 public class CircleUI : MonoBehaviour
 {
-    public RectTransform uiElement1; // 첫 번째 UI 요소
-    public RectTransform uiElement2; // 두 번째 UI 요소
-    public float radius = 100f;  // 원의 반지름
-    public float speed = 180f;  // 초당 회전 각도
-    private bool isAnimating = false;  // 애니메이션이 진행 중인지 확인하는 변수
+    public RectTransform uiElement1;
+    public RectTransform uiElement2;
+    public Image uiElement1Image;  // 첫 번째 UI의 Image 컴포넌트
+    public Image uiElement2Image;  // 두 번째 UI의 Image 컴포넌트
+    public Transform playerTransform;  // 플레이어의 Transform (머리 위치를 기준으로 함)
+    public float radius = 0.2f;  // 반지름 (UI 요소 간 Z축 거리)
+    public float duration = 2f;  // 애니메이션 지속 시간
+    public Vector3 initialPos1 = new Vector3(0, 1.13f, -0.108f);  // 첫 번째 UI의 초기 위치
+    public Vector3 initialPos2 = new Vector3(0, 1.039f, 0.292f);  // 두 번째 UI의 초기 위치
+
+    private bool isSwapped = false;  // 위치가 바뀌었는지 여부를 저장하는 플래그
+
+    void Start()
+    {
+        // UI의 초기 위치 설정 (플레이어 머리 위)
+        ResetUIPositions();
+    }
 
     void Update()
     {
-        // Space 키를 누를 때 코루틴을 실행
-        if (Input.GetKeyDown(KeyCode.Space) && !isAnimating)
+        // Space 키를 누르면 애니메이션 시작
+        if (Input.GetKeyDown(KeyCode.Space))
         {
-            StartCoroutine(SwapPositions());
+            StartSwapAnimation();
         }
     }
 
-    // 두 UI 이미지의 위치를 반원 경로를 그리며 교체하는 코루틴
-    IEnumerator SwapPositions()
+    // 두 UI 이미지를 반원 경로로 애니메이션하고, 동시에 알파값 교환
+    void StartSwapAnimation()
     {
-        isAnimating = true;
-        float duration = 1f;  // 애니메이션 지속 시간
-        float elapsed = 0f;   // 경과 시간
-        float currentAngle = 0f;
+        // 애니메이션 중복 실행 방지
+        if (DOTween.IsTweening(uiElement1) || DOTween.IsTweening(uiElement2))
+            return;
 
-        Vector2 initialPos1 = uiElement1.anchoredPosition;  // UI 1의 초기 위치
-        Vector2 initialPos2 = uiElement2.anchoredPosition;  // UI 2의 초기 위치
-
-        while (elapsed < duration)
+        // 위치 교환 애니메이션 시작
+        if (isSwapped)
         {
-            elapsed += Time.deltaTime;
-            currentAngle = Mathf.Lerp(0f, 180f, elapsed / duration);  // 시간에 따라 각도 증가
+            // 두 번째 UI 요소의 위치를 원래 위치로 애니메이션
+            DOTween.To(
+                () => 0f,
+                x => MoveAlongSemiCircle(uiElement2, x, initialPos2, 1),
+                180f,
+                duration
+            );
 
-            // UIElement1을 반원의 경로로 이동
-            MoveAlongSemiCircle(uiElement1, currentAngle, initialPos1);
+            // 첫 번째 UI 요소의 위치를 원래 위치로 애니메이션
+            DOTween.To(
+                () => 0f,
+                x => MoveAlongSemiCircle(uiElement1, x, initialPos1, -1),
+                180f,
+                duration
+            );
 
-            // UIElement2를 반원의 경로로 이동 (반대방향)
-            MoveAlongSemiCircle(uiElement2, 180f - currentAngle, initialPos2);
+            // 알파값도 원래대로 되돌리기
+            uiElement1Image.DOFade(1f, duration);
+            uiElement2Image.DOFade(0.196f, duration);
+        }
+        else
+        {
+            // 첫 번째 UI 요소의 위치를 두 번째 위치로 애니메이션
+            DOTween.To(
+                () => 0f,
+                x => MoveAlongSemiCircle(uiElement1, x, initialPos1, 1),
+                180f,
+                duration
+            );
 
-            yield return null;
+            // 두 번째 UI 요소의 위치를 첫 번째 위치로 애니메이션
+            DOTween.To(
+                () => 0f,
+                x => MoveAlongSemiCircle(uiElement2, x, initialPos2, -1),
+                180f,
+                duration
+            );
+
+            // 알파값도 교환
+            uiElement1Image.DOFade(0.196f, duration);
+            uiElement2Image.DOFade(1f, duration);
         }
 
-        // 위치를 정확히 반대편으로 이동 (혹시나 정확한 위치에 놓지 않았을 때를 대비)
-        uiElement1.anchoredPosition = initialPos2;
-        uiElement2.anchoredPosition = initialPos1;
-
-        isAnimating = false;  // 애니메이션 완료
+        // 애니메이션 완료 후 상태를 반전시킴
+        isSwapped = !isSwapped;
     }
 
-    // 각도에 따라 UI 요소를 반원 경로로 이동시키는 함수
-    void MoveAlongSemiCircle(RectTransform uiElement, float angle, Vector2 initialPos)
+    // 각도에 따라 UI 요소를 반원 경로로 이동시키는 함수 (플레이어 머리 기준)
+    void MoveAlongSemiCircle(RectTransform uiElement, float angle, Vector3 initialPosition, int direction)
     {
         float radian = Mathf.Deg2Rad * angle;
-        float x = radius * Mathf.Cos(radian);
-        float y = radius * Mathf.Sin(radian);
 
-        // 원래 위치에서의 변화를 적용한 좌표
-        uiElement.anchoredPosition = initialPos + new Vector2(x, y);
+        // 플레이어 위치를 기준으로 Z축을 따라 반원 경로 이동
+        Vector3 offset = new Vector3(
+            radius * Mathf.Sin(radian) * direction,  // X축 경로
+            0,  // Y 좌표는 고정 (머리 위에 고정)
+            radius * Mathf.Cos(radian)  // Z축 경로
+        );
+
+        // UI 요소를 플레이어 머리 위에서 이동시키기 (플레이어의 현재 위치를 중심으로 이동)
+        uiElement.position = playerTransform.position + initialPosition + offset;
+    }
+
+    // UI 위치 초기화 함수
+    void ResetUIPositions()
+    {
+        uiElement1.position = playerTransform.position + initialPos1;
+        uiElement2.position = playerTransform.position + initialPos2;
+
+        // 이미지 알파값 초기 설정
+        SetAlpha(uiElement1Image, 1f);  // 첫 번째 UI의 알파값 255
+        SetAlpha(uiElement2Image, 0.196f);  // 두 번째 UI의 알파값 50
+    }
+
+    // Image의 알파값을 설정하는 함수
+    void SetAlpha(Image img, float alpha)
+    {
+        Color color = img.color;
+        color.a = alpha;
+        img.color = color;
     }
 }
