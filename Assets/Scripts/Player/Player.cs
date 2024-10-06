@@ -15,6 +15,8 @@ public class Player : MonoBehaviour
     BreakableObjectBase breakableObject;
     UIManager ui;
 
+    public PlayerState currentPlayerState;
+
     public Image RealoadBar;
 
     public Image AmmoBar;
@@ -30,6 +32,8 @@ public class Player : MonoBehaviour
         gm = FindObjectOfType<GameManager>();
         ui = FindObjectOfType<UIManager>();
         player = gameObject.GetComponent<PlayerStat>();
+
+        currentPlayerState = PlayerState.None;
 
         if (Scope == null)
         {
@@ -52,10 +56,12 @@ public class Player : MonoBehaviour
         {
             if(!IsMouseOverUI() && !gm.isAutoAttack)
             {
+                currentPlayerState = PlayerState.Attack;
                 MouseToRotatePosition();
             }
             else
             {
+                currentPlayerState = PlayerState.Attack;
                 AutoAttack();
             }
 
@@ -137,6 +143,7 @@ public class Player : MonoBehaviour
         //리로드 할때 만약 플레이어의 탄약이 만발이라면 장전을 안한다.
         else if (Input.GetMouseButtonUp(0) && !IsMouseOverUI())
         {
+            currentPlayerState = PlayerState.Defence;
             Scope.SetActive(false);
             RealoadBar.gameObject.SetActive(true);
 
@@ -204,6 +211,7 @@ public class Player : MonoBehaviour
 
     public void Death()
     {
+        currentPlayerState = PlayerState.None;
         Destroy(this.gameObject);
     }
 

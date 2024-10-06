@@ -17,6 +17,8 @@ public class AutoPlayer : MonoBehaviour
     public Text AmmoText;
     public bool isAlive;
 
+    public PlayerState autoCurrentPlayerState;
+
     private float fireCooldown;
     private Enemy currentTarget; // ÇöÀç Å¸°Ù
 

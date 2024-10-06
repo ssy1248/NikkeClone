@@ -6,6 +6,9 @@ using UnityEngine.UI;
 
 public class CircleUI : MonoBehaviour
 {
+    //플레이어가 현재 player함수가 enable이면 noauto, 아닐시 auto 로 분리하고 그것을 circle이나 player통합 스크립트에서 확인을 하여서
+    //currentPlayerState, autoCurrentPlayerState 에 Attack, Defence 를 분리
+
     public RectTransform uiElement1;
     public RectTransform uiElement2;
     public Image uiElement1Image;  // 첫 번째 UI의 Image 컴포넌트
