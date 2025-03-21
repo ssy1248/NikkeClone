@@ -75,22 +75,32 @@ public class GameManager : MonoBehaviour
 
     public List<Player> players = new List<Player>();
 
-    //현재 활성화된 플레이어 오브젝트
+    //현재 활성화된 플레이어
     [SerializeField]
     public Player activePlayer;
 
-    private RectTransform previousButtonRectTransform = null; // 이전 버튼의 RectTransform
-    private float originalHeight = 0f; // 원래 높이 저장
-    private Vector2 originalPos; // 원래 위치 저장
-    private Dictionary<int, Coroutine> increaseHeightCoroutines = new Dictionary<int, Coroutine>(); // 각 버튼 높이 증가 코루틴
-    private Dictionary<int, Coroutine> decreaseHeightCoroutines = new Dictionary<int, Coroutine>(); // 각 버튼 높이 축소 코루틴
-    private int lastActiveButtonIndex = -1; // 이전에 눌린 버튼의 인덱스
-    private Dictionary<int, bool> isButtonIncreased = new Dictionary<int, bool>(); // 각 버튼의 증가 상태를 확인하는 변수
+    // ▼ 기존 코드에서는 단일 originalHeight, originalPos를 사용했지만
+    //   여러 버튼을 연속으로 누를 때 서로 꼬이지 않도록
+    //   버튼마다 '초기 크기/위치'를 저장하는 Dictionary를 사용합니다.
+    private Dictionary<int, float> defaultHeights = new Dictionary<int, float>();
+    private Dictionary<int, Vector2> defaultPositions = new Dictionary<int, Vector2>();
+
+    // 코루틴 추적
+    private Dictionary<int, Coroutine> increaseHeightCoroutines = new Dictionary<int, Coroutine>();
+    private Dictionary<int, Coroutine> decreaseHeightCoroutines = new Dictionary<int, Coroutine>();
+
+    // 각 버튼의 확장 상태 체크
+    private Dictionary<int, bool> isButtonIncreased = new Dictionary<int, bool>();
+
+    // 이전에 활성화된 버튼/RectTransform
+    private int lastActiveButtonIndex = -1;
+    private RectTransform previousButtonRectTransform = null;
 
     //캐릭터의 최대 탄창을 저장하기 위한 List
     [SerializeField]
     public List<float> MaxAmmos = new List<float>();
-    //현재 활성화된 Player를 알기 위한 Index값
+
+    //현재 활성화된 Player의 Index
     public int PlayerIndex;
 
     //1버스트까지 가기 위한 값
@@ -98,17 +108,12 @@ public class GameManager : MonoBehaviour
 
     public List<Enemy> EnemyList = new List<Enemy>();
 
-    //Auto 버튼을 눌렀는지 확인을 위한 bool
+    //오토 관련 bool
     public bool isAutoBurst;
-    //AutoAttack 버튼을 눈렀는지 확인을 위한 bool
     public bool isAutoAttack;
 
     [Header("UI")]
     public GameObject pauseScreen;
-
-    //버튼 Auto 를 만들면 모든 플레이어 Player함수를 비활성화 시키고 AutoPlayer함수를 활성화 SelPlayer함수가 실행되더라도 Player함수가 활성화되는것을 예외처리
-    //버튼 AutoBurst를 만들어서 클릭을 할 시 생성되는 Burst1Image의 리스트의 제일 앞을 실행시키기 만약 제일 앞이 쿨타임이 걸려있다면 ++ 을 진행하여 발동 만약 모든 리스트가 쿨타임이 진행중이라면 아무행동도 안함
-    //크기 줄이는 코루틴이 발생하여서 크기가 커져도 hpbar와 defencebar, code SetActive 비활성화 예외 처리는 완료 그러나 위치가 이상하고 처음 시작하는 플레이어는 싹다 setActive가 false로 되어잇음
 
     void Start()
     {
@@ -116,18 +121,26 @@ public class GameManager : MonoBehaviour
 
         isAutoBurst = false;
         isAutoAttack = false;
-
-        //초기화
         PlayerIndex = 0;
 
+        // 모든 버튼의 초기 크기/위치를 저장하고, isButtonIncreased를 false로 초기화
         for (int i = 0; i < buttons.Length; i++)
         {
+            RectTransform rt = buttons[i].GetComponent<RectTransform>();
+            defaultHeights[i] = rt.sizeDelta.y;
+            defaultPositions[i] = rt.anchoredPosition;
             isButtonIncreased[i] = false;
+
+            // 코루틴 딕셔너리도 초기화
+            increaseHeightCoroutines[i] = null;
+            decreaseHeightCoroutines[i] = null;
         }
 
+        // Player 목록 세팅
         players.AddRange(FindObjectsOfType<Player>());
         if (players.Count > 0)
         {
+            // 0번 플레이어 활성화
             SetActivePlayer(PlayerObjects[0].GetComponent<Player>());
 
             if (PlayerIndex != -1)
@@ -136,26 +149,27 @@ public class GameManager : MonoBehaviour
             }
         }
 
+        // PlayerStat 정보 확인
         for (int i = 0; i < PlayerObjects.Count; i++)
         {
             PlayerStat playerStat = PlayerObjects[i].GetComponent<PlayerStat>();
             if (playerStat != null)
             {
                 MaxAmmos.Add(playerStat.currentAmmo);
-                //임의 값 
                 TotalBurst = 100;
-                //TotalBurst += (playerStat.currentDamage * 5);
 
                 if (playerStat.currentBurst == BurstType.Burst1)
                 {
                     OneBurstPlayer.Add(PlayerObjects[i].GetComponent<Player>());
                 }
-                else if(playerStat.currentBurst == BurstType.Burst2)
+                else if (playerStat.currentBurst == BurstType.Burst2)
                 {
                     TwoBurstPlayer.Add(PlayerObjects[i].GetComponent<Player>());
                 }
                 else
+                {
                     ThreeBurstPlayer.Add(PlayerObjects[i].GetComponent<Player>());
+                }
             }
             else
             {
@@ -205,92 +219,93 @@ public class GameManager : MonoBehaviour
 
     public void SetActivePlayer(Player player)
     {
+        // 오토/수동 플레이어 스크립트 활성/비활성 처리
         foreach (var p in players)
         {
-            //p.enabled = false;
             if (p == player)
             {
-                p.enabled = true;  // 활성화할 플레이어는 Player 스크립트를 활성화하고
+                p.enabled = true;  // 수동 플레이어
                 AutoPlayer autoPlayer = p.GetComponent<AutoPlayer>();
-                if (autoPlayer != null)
-                {
-                    autoPlayer.enabled = false;  // AutoPlayer 스크립트를 비활성화
-                }
+                if (autoPlayer != null) autoPlayer.enabled = false;
             }
             else
             {
-                p.enabled = false;  // 다른 플레이어는 Player 스크립트를 비활성화하고
+                p.enabled = false; // 수동 끄기
                 AutoPlayer autoPlayer = p.GetComponent<AutoPlayer>();
-                if (autoPlayer != null)
-                {
-                    autoPlayer.enabled = true;  // AutoPlayer 스크립트를 활성화
-                }
+                if (autoPlayer != null) autoPlayer.enabled = true; // 오토 켜기
             }
         }
 
-        player.enabled = true;
         activePlayer = player;
     }
 
     public void BtnSelPlayer(int num)
     {
-        SetActivePlayer(PlayerObjects[num].GetComponent<Player>());
-
-        // 이전 버튼의 높이를 원래대로 줄이기
-        if (previousButtonRectTransform != null && previousButtonRectTransform != buttons[num].GetComponent<RectTransform>())
+        // 1) 이전 버튼 코루틴 중단 & 즉시 원상복귀
+        if (lastActiveButtonIndex != -1 && lastActiveButtonIndex != num)
         {
-            if (decreaseHeightCoroutines.ContainsKey(lastActiveButtonIndex) && decreaseHeightCoroutines[lastActiveButtonIndex] != null)
+            // 기존 코루틴 중단
+            if (increaseHeightCoroutines[lastActiveButtonIndex] != null)
             {
-                // 기존 코루틴이 끝날 때까지 기다리기
-                StartCoroutine(WaitForCoroutineToEnd(decreaseHeightCoroutines[lastActiveButtonIndex], () =>
-                {
-                    decreaseHeightCoroutines[lastActiveButtonIndex] = StartCoroutine(DecreaseButtonHeight(previousButtonRectTransform, originalHeight, originalPos, 0.5f));
-                }));
+                StopCoroutine(increaseHeightCoroutines[lastActiveButtonIndex]);
+                increaseHeightCoroutines[lastActiveButtonIndex] = null;
             }
-            else
+            if (decreaseHeightCoroutines[lastActiveButtonIndex] != null)
             {
-                // 새로 줄이기 코루틴 시작
-                decreaseHeightCoroutines[lastActiveButtonIndex] = StartCoroutine(DecreaseButtonHeight(previousButtonRectTransform, originalHeight, originalPos, 0.5f));
+                StopCoroutine(decreaseHeightCoroutines[lastActiveButtonIndex]);
+                decreaseHeightCoroutines[lastActiveButtonIndex] = null;
             }
+
+            // 이전 버튼 RectTransform을 원래 크기/위치로 복구
+            RectTransform oldRect = buttons[lastActiveButtonIndex].GetComponent<RectTransform>();
+            oldRect.sizeDelta = new Vector2(oldRect.sizeDelta.x, defaultHeights[lastActiveButtonIndex]);
+            oldRect.anchoredPosition = defaultPositions[lastActiveButtonIndex];
+
             isButtonIncreased[lastActiveButtonIndex] = false;
         }
 
-        // 새로운 버튼의 RectTransform 가져오기
-        RectTransform currentButtonRectTransform = buttons[num].GetComponent<RectTransform>();
-
-        // 이미 증가된 버튼이면 크기를 증가시키지 않음
+        // 이미 확장된 버튼이면 무시
         if (isButtonIncreased[num])
         {
             Debug.Log("이미 증가된 버튼입니다.");
             return;
         }
 
-        originalHeight = currentButtonRectTransform.sizeDelta.y; // 현재 높이 저장
-        originalPos = currentButtonRectTransform.anchoredPosition; // 현재 위치 저장
+        // 2) 새 버튼 코루틴 중단 & 원상복귀 (혹시라도 중첩이 있을 수 있으니)
+        if (increaseHeightCoroutines[num] != null)
+        {
+            StopCoroutine(increaseHeightCoroutines[num]);
+            increaseHeightCoroutines[num] = null;
+        }
+        if (decreaseHeightCoroutines[num] != null)
+        {
+            StopCoroutine(decreaseHeightCoroutines[num]);
+            decreaseHeightCoroutines[num] = null;
+        }
+
+        RectTransform currentButtonRectTransform = buttons[num].GetComponent<RectTransform>();
 
         // 카메라 활성화
         ActivateCamera(num);
 
-        // 버튼 높이 증가 코루틴 시작
-        if (increaseHeightCoroutines.ContainsKey(num) && increaseHeightCoroutines[num] != null)
-        {
-            // 기존 코루틴이 끝날 때까지 기다리기
-            StartCoroutine(WaitForCoroutineToEnd(increaseHeightCoroutines[num], () =>
-            {
-                increaseHeightCoroutines[num] = StartCoroutine(IncreaseButtonHeightAndMove(currentButtonRectTransform, 100f, new Vector2(originalPos.x, 0), 0.5f));
-            }));
-        }
-        else
-        {
-            increaseHeightCoroutines[num] = StartCoroutine(IncreaseButtonHeightAndMove(currentButtonRectTransform, 100f, new Vector2(originalPos.x, 0), 0.5f));
-        }
-        isButtonIncreased[num] = true; // 버튼이 증가되었음을 표시
+        // 3) 새 버튼 확장 코루틴 시작
+        float currentHeight = currentButtonRectTransform.sizeDelta.y;
+        float targetHeight = currentHeight + 100f; // 100f만큼 키우기
+        Vector2 currentPos = currentButtonRectTransform.anchoredPosition;
+        Vector2 targetPos = new Vector2(currentPos.x, 0f); // y=0으로 이동
 
-        // 현재 버튼을 이전 버튼으로 설정
-        previousButtonRectTransform = currentButtonRectTransform;
+        increaseHeightCoroutines[num] = StartCoroutine(
+            IncreaseButtonHeightAndMove(currentButtonRectTransform, targetHeight, targetPos, 0.5f)
+        );
 
-        // 이미지와 텍스트 활성화/비활성화
+        isButtonIncreased[num] = true;
+
+        // 4) UI 이미지/텍스트 활성화/비활성 로직
         SetActiveImageText(false, num);
+
+        // 5) 현재 버튼을 '이전 버튼'으로 설정
+        previousButtonRectTransform = currentButtonRectTransform;
+        lastActiveButtonIndex = num;
     }
 
     void ActivateCamera(int index)
@@ -307,20 +322,14 @@ public class GameManager : MonoBehaviour
 
     void SetActiveImageText(bool active, int num)
     {
+        // 이전 버튼의 텍스트/이미지 되돌리기
         if (lastActiveButtonIndex != -1 && lastActiveButtonIndex != num)
         {
-            // 이전에 비활성화된 이미지와 텍스트를 다시 활성화
             SetChildActive(lastActiveButtonIndex, true);
         }
 
-        // 현재 버튼의 이미지와 텍스트를 활성화/비활성화
+        // 새로 선택된 버튼 텍스트/이미지 비활성화
         SetChildActive(num, active);
-
-        // 마지막으로 활성화한 버튼 인덱스를 갱신
-        if (!active)
-        {
-            lastActiveButtonIndex = num;
-        }
     }
 
     private void SetChildActive(int num, bool active)
@@ -338,31 +347,10 @@ public class GameManager : MonoBehaviour
     }
 
     //버튼크기 키우는 코루틴
-    IEnumerator IncreaseButtonHeightAndMove(RectTransform rectTransform, float heightIncrease,
-        Vector2 targetPos, float duration)
-    {
-        float elapsedTime = 0f;
-        float initialHeight = rectTransform.sizeDelta.y;
-        float targetHeight = initialHeight + heightIncrease;
-        Vector2 initialPos = rectTransform.anchoredPosition;
-
-        while (elapsedTime < duration)
-        {
-            elapsedTime += Time.deltaTime;
-            float newHeight = Mathf.Lerp(initialHeight, targetHeight, elapsedTime / duration);
-            Vector2 newPos = Vector2.Lerp(initialPos, targetPos, elapsedTime / duration);
-            rectTransform.sizeDelta = new Vector2(rectTransform.sizeDelta.x, newHeight);
-            rectTransform.anchoredPosition = newPos;
-            yield return null;
-        }
-
-        rectTransform.sizeDelta = new Vector2(rectTransform.sizeDelta.x, targetHeight); // 최종 크기 설정
-        rectTransform.anchoredPosition = targetPos; // 최종 위치 설정
-    }
-
-    //버튼크기 줄이는 코루틴
-    IEnumerator DecreaseButtonHeight(RectTransform rectTransform, float targetHeight, 
-        Vector2 targetPos, float duration)
+    IEnumerator IncreaseButtonHeightAndMove(RectTransform rectTransform,
+                                            float targetHeight,
+                                            Vector2 targetPos,
+                                            float duration)
     {
         float elapsedTime = 0f;
         float initialHeight = rectTransform.sizeDelta.y;
@@ -371,18 +359,51 @@ public class GameManager : MonoBehaviour
         while (elapsedTime < duration)
         {
             elapsedTime += Time.deltaTime;
-            float newHeight = Mathf.Lerp(initialHeight, targetHeight, elapsedTime / duration);
-            Vector2 newPos = Vector2.Lerp(initialPos, targetPos, elapsedTime / duration);
+            float t = elapsedTime / duration;
+
+            float newHeight = Mathf.Lerp(initialHeight, targetHeight, t);
+            Vector2 newPos = Vector2.Lerp(initialPos, targetPos, t);
+
             rectTransform.sizeDelta = new Vector2(rectTransform.sizeDelta.x, newHeight);
             rectTransform.anchoredPosition = newPos;
             yield return null;
         }
 
-        rectTransform.sizeDelta = new Vector2(rectTransform.sizeDelta.x, targetHeight); // 최종 크기 설정
-        rectTransform.anchoredPosition = targetPos; // 최종 위치 설정
+        // 최종 보정
+        rectTransform.sizeDelta = new Vector2(rectTransform.sizeDelta.x, targetHeight);
+        rectTransform.anchoredPosition = targetPos;
     }
 
-    //버튼이 줄어들거나 커지는 시간을 기다리게 하는 코루틴
+    //버튼크기 줄이는 코루틴 (필요하면 사용)
+    IEnumerator DecreaseButtonHeight(RectTransform rectTransform,
+                                     float targetHeight,
+                                     Vector2 targetPos,
+                                     float duration)
+    {
+        float elapsedTime = 0f;
+        float initialHeight = rectTransform.sizeDelta.y;
+        Vector2 initialPos = rectTransform.anchoredPosition;
+
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = elapsedTime / duration;
+
+            float newHeight = Mathf.Lerp(initialHeight, targetHeight, t);
+            Vector2 newPos = Vector2.Lerp(initialPos, targetPos, t);
+
+            rectTransform.sizeDelta = new Vector2(rectTransform.sizeDelta.x, newHeight);
+            rectTransform.anchoredPosition = newPos;
+            yield return null;
+        }
+
+        rectTransform.sizeDelta = new Vector2(rectTransform.sizeDelta.x, targetHeight);
+        rectTransform.anchoredPosition = targetPos;
+    }
+
+    // ▼ 두 번째 접근 방식에서는 이전 코루틴이 끝나길 기다리지 않으므로
+    //   WaitForCoroutineToEnd는 사용하지 않아도 됩니다.
+    //   필요 없다면 삭제하셔도 무방합니다.
     IEnumerator WaitForCoroutineToEnd(Coroutine coroutine, System.Action onComplete)
     {
         yield return coroutine;
